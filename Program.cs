@@ -85,13 +85,15 @@ namespace LangFileDiff
             }
             catch (FileNotFoundException e)
             {
-                Console.WriteLine($"File not found: {e.FileName}");
+                Console.WriteLine($"File not found: {e.Message}");
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Unexpected exception: {e}");
             }
 
+            Console.WriteLine("Enter to close");
+            Console.ReadLine();
         }
 
         public static IEnumerable<string> CreateLogSection(string title, IEnumerable<string> lines)
