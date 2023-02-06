@@ -67,33 +67,38 @@ namespace LangFileDiff
 
                     if (removedLines.Count > 0)
                     {
-                        logs.AddRange(CreateLogSection($"Removed lines in base file: {removedLines.Count}", removedLines.Select(l => l.ToString())));
+                        logs.AddRange(CreateLogSection($"Removed lines in base file: {removedLines.Count}", removedLines.Select(l => $"{l}")));
                     }
 
                     if (remainPairs.Count > 0)
                     {
-                        logs.AddRange(CreateLogSection($"Added lines in my file: {remainPairs.Count}", remainPairs.Values.Select(l => l.ToString())));
+                        logs.AddRange(CreateLogSection($"Added lines in my file: {remainPairs.Count}", remainPairs.Values.Select(l => $"{l}")));
                     }
 
                 }
                 else if (mode == Mode.Merge)
                 {
                     var missingLines = new List<LineInfo>();
+                    var sameLines = new List<LineInfo>();
 
                     for (var i = 0; i < baseLines.Length; i++)
                     {
                         var baseLine = new LineInfo() { LineNumber = i, Content = baseLines[i] };
                         var key = baseLine.Content.ExtractKey();
-                        string resultText;
 
                         if (remainPairs.TryGetValue(key, out var myLine))
                         {
-                            resultText = myLine.Content;
-                            resultLines.Add(resultText);
+                            resultLines.Add(baseLine.Content.ReplaceValue(myLine.Content));
+
+                            if (baseLine.EqualsKeyAndValue(myLine.Content) && !myLine.Content.IsNullOrWhiteSpaceOrBracket())
+                            {
+                                sameLines.Add(myLine);
+                            }
+
                         }
                         else
                         {
-                            resultText = baseLine.Content;
+                            resultLines.Add(baseLine.Content);
                             missingLines.Add(baseLine);
                         }
 
@@ -107,12 +112,17 @@ namespace LangFileDiff
                         logs.AddRange(CreateLogSection($"Missing lines in base file: {missingLines.Count}", missingLines.Select(l => l.ToString())));
                     }
 
+                    if (sameLines.Count > 0)
+                    {
+                        logs.AddRange(CreateLogSection($"Same lines in my file: {sameLines.Count}", sameLines.Select(l => l.ToString())));
+                    }
+
                     if (remainPairs.Count > 0)
                     {
                         logs.AddRange(CreateLogSection($"Unmerged lines in my file: {remainPairs.Count}", remainPairs.Values.Select(l => l.ToString())));
                     }
 
-                    sameFileText = "Merged perfectly";
+                    sameFileText = "All line changed";
 
                     Console.WriteLine($"Merged file is created on");
                     Console.WriteLine(resultPath);

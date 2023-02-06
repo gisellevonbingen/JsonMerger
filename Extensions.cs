@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -115,6 +116,24 @@ namespace LangFileDiff
             var startIndex = line.IndexOf('\"');
             var endIndex = line.LastIndexOf('\"');
             return line.Substring(startIndex + 1, endIndex - startIndex - 1);
+        }
+
+        public static string ReplaceValue(this string line, string newValue)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return line;
+            }
+            else
+            {
+                return line.Replace(line.ExtractValue(), newValue.ExtractValue());
+            }
+
+        }
+
+        public static bool IsNullOrWhiteSpaceOrBracket(this string line)
+        {
+            return string.IsNullOrWhiteSpace(line) || line.Equals("{") || line.Equals("}");
         }
 
     }

@@ -11,6 +11,11 @@ namespace LangFileDiff
         public int LineNumber { get; set; }
         public string Content { get; set; }
 
+        public bool EqualsKeyAndValue(string otherContent)
+        {
+            return this.Content.ExtractKey().Equals(otherContent.ExtractKey()) && this.Content.ExtractValue().Equals(otherContent.ExtractValue());
+        }
+
         public override string ToString()
         {
             return $"Line: {this.LineNumber + 1} - {this.Content}";
