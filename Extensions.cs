@@ -77,7 +77,10 @@ namespace LangFileDiff
             }
             else
             {
-                return line.Substring(0, index);
+                line = line.Substring(0, index);
+                var startIndex = line.IndexOf('\"');
+                var endIndex = line.LastIndexOf('\"');
+                return line.Substring(startIndex + 1, endIndex - startIndex - 1);
             }
 
         }
