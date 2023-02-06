@@ -16,6 +16,11 @@ namespace LangFileDiff
             return $"Line: {this.LineNumber + 1} - {this.Content}";
         }
 
+        public string ToStringWithOnlyValue()
+        {
+            return $"Line: {this.LineNumber + 1} - {this.Content.ExtractValue()}";
+        }
+
     }
 
 }

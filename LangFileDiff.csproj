@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Extensions.cs" />
     <Compile Include="LineInfo.cs" />
+    <Compile Include="Mode.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

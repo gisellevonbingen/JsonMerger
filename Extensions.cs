@@ -39,6 +39,19 @@ namespace LangFileDiff
             return path;
         }
 
+        public static ENUM EnsureEnum<ENUM>(this string name) where ENUM : struct
+        {
+            if (Enum.TryParse<ENUM>(name, true, out var result))
+            {
+                return result;
+            }
+            else
+            {
+                throw new FormatException($"Invalid input: {name}");
+            }
+
+        }
+
         public static string AsPath(this string path)
         {
             if (path.StartsWith("\"") && path.EndsWith("\""))
@@ -77,12 +90,31 @@ namespace LangFileDiff
             }
             else
             {
-                line = line.Substring(0, index);
-                var startIndex = line.IndexOf('\"');
-                var endIndex = line.LastIndexOf('\"');
-                return line.Substring(startIndex + 1, endIndex - startIndex - 1);
+                return line.Substring(0, index).ExtractQuote();
             }
 
+        }
+
+        public static string ExtractValue(this string line)
+        {
+            var index = line.IndexOf(':');
+
+            if (index == -1)
+            {
+                return line;
+            }
+            else
+            {
+                return line.Substring(index + 1).ExtractQuote();
+            }
+
+        }
+
+        public static string ExtractQuote(this string line)
+        {
+            var startIndex = line.IndexOf('\"');
+            var endIndex = line.LastIndexOf('\"');
+            return line.Substring(startIndex + 1, endIndex - startIndex - 1);
         }
 
     }

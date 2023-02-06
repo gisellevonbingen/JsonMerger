@@ -15,57 +15,115 @@ namespace LangFileDiff
             {
                 // Initialze paths
                 int argIndex = 0;
+                var mode = args.GetArg(ref argIndex, $"Enter program mode ({string.Join(", ", Enum.GetNames(typeof(Mode)))})").EnsureEnum<Mode>();
                 var basePath = args.GetArg(ref argIndex, "Enter base file path").EnsureFileExists();
                 var myPath = args.GetArg(ref argIndex, "Enter my file path").EnsureFileExists();
-                var resultPath = Path.Combine(Path.GetDirectoryName(myPath), "result.json");
-                var logPath = Path.Combine(Path.GetDirectoryName(myPath), "log.txt");
+                var resultPath = Path.Combine(Path.GetDirectoryName(myPath), "merge_result.json");
+                var logPath = Path.Combine(Path.GetDirectoryName(myPath), $"{mode}_log.txt".ToLower());
+
+                // Prepare log messages
+                var logs = new List<string>();
+                var sameFileText = string.Empty;
 
                 // Fetch lines
                 var baseLines = File.ReadLines(basePath).ToArray();
                 var remainPairs = File.ReadLines(myPath).ExtractPairs();
                 var resultLines = new List<string>();
-                var missingLines = new List<LineInfo>();
 
                 // Process lines
-                for (var i = 0; i < baseLines.Length; i++)
+                if (mode == Mode.Diff)
                 {
-                    var baseLine = baseLines[i];
-                    var key = baseLine.ExtractKey();
-                    string resultLine;
+                    var changedLines = new List<Tuple<LineInfo, LineInfo>>();
+                    var removedLines = new List<LineInfo>();
 
-                    if (remainPairs.TryGetValue(key, out var myLine))
+                    for (var i = 0; i < baseLines.Length; i++)
                     {
-                        resultLine = myLine.Content;
+                        var baseLine = new LineInfo() { LineNumber = i, Content = baseLines[i] };
+                        var key = baseLine.Content.ExtractKey();
+
+                        if (remainPairs.TryGetValue(key, out var myLine))
+                        {
+                            if (!baseLine.Content.ExtractValue().Equals(myLine.Content.ExtractValue()))
+                            {
+                                changedLines.Add(Tuple.Create(baseLine, myLine));
+                            }
+
+                            remainPairs.Remove(key);
+                        }
+                        else
+                        {
+                            removedLines.Add(baseLine);
+                        }
+
                     }
-                    else
+
+                    sameFileText = "File is same";
+
+                    if (changedLines.Count > 0)
                     {
-                        resultLine = baseLine;
-                        missingLines.Add(new LineInfo() { LineNumber = i, Content = baseLine });
+                        logs.AddRange(CreateLogSection($"Changed lines: {changedLines.Count} (base -> my)",
+                            changedLines.Select(t => $"{t.Item1.Content.ExtractKey()}\n    {t.Item1.ToStringWithOnlyValue()}\n    {t.Item2.ToStringWithOnlyValue()}")));
                     }
 
-                    resultLines.Add(resultLine);
-                    remainPairs.Remove(key);
+                    if (removedLines.Count > 0)
+                    {
+                        logs.AddRange(CreateLogSection($"Removed lines in base file: {removedLines.Count}", removedLines.Select(l => l.ToString())));
+                    }
+
+                    if (remainPairs.Count > 0)
+                    {
+                        logs.AddRange(CreateLogSection($"Added lines in my file: {remainPairs.Count}", remainPairs.Values.Select(l => l.ToString())));
+                    }
+
                 }
-
-                File.WriteAllLines(resultPath, resultLines);
-
-                // Dump log file
-                var logs = new List<string>();
-
-                if (missingLines.Count > 0)
+                else if (mode == Mode.Merge)
                 {
-                    logs.AddRange(CreateLogSection($"Missing lines in base file : {missingLines.Count}", missingLines.Select(l => l.ToString())));
+                    var missingLines = new List<LineInfo>();
+
+                    for (var i = 0; i < baseLines.Length; i++)
+                    {
+                        var baseLine = new LineInfo() { LineNumber = i, Content = baseLines[i] };
+                        var key = baseLine.Content.ExtractKey();
+                        string resultText;
+
+                        if (remainPairs.TryGetValue(key, out var myLine))
+                        {
+                            resultText = myLine.Content;
+                            resultLines.Add(resultText);
+                        }
+                        else
+                        {
+                            resultText = baseLine.Content;
+                            missingLines.Add(baseLine);
+                        }
+
+                        remainPairs.Remove(key);
+                    }
+
+                    File.WriteAllLines(resultPath, resultLines);
+
+                    if (missingLines.Count > 0)
+                    {
+                        logs.AddRange(CreateLogSection($"Missing lines in base file: {missingLines.Count}", missingLines.Select(l => l.ToString())));
+                    }
+
+                    if (remainPairs.Count > 0)
+                    {
+                        logs.AddRange(CreateLogSection($"Unmerged lines in my file: {remainPairs.Count}", remainPairs.Values.Select(l => l.ToString())));
+                    }
+
+                    sameFileText = "Merged perfectly";
+
+                    Console.WriteLine($"Merged file is created on");
+                    Console.WriteLine(resultPath);
+                    Console.WriteLine();
                 }
 
-                if (remainPairs.Count > 0)
-                {
-                    logs.AddRange(CreateLogSection($"Unmerged lines in my file : {remainPairs.Count}", remainPairs.Values.Select(l => l.ToString())));
-                }
-
+                // Dump log messages
                 if (logs.Count == 0)
                 {
                     File.Delete(logPath);
-                    Console.WriteLine("Merged perfectly");
+                    Console.WriteLine(sameFileText);
                     Console.WriteLine();
                 }
                 else
@@ -76,16 +134,20 @@ namespace LangFileDiff
                     }
 
                     File.WriteAllLines(logPath, logs);
+
+                    Console.WriteLine($"Log file is created on");
+                    Console.WriteLine(logPath);
+                    Console.WriteLine();
                 }
 
-                // Finishing
-                Console.WriteLine($"Merged file is created on");
-                Console.WriteLine(resultPath);
-                Console.WriteLine();
             }
             catch (FileNotFoundException e)
             {
                 Console.WriteLine($"File not found: {e.Message}");
+            }
+            catch (FormatException e)
+            {
+                Console.WriteLine(e.Message);
             }
             catch (Exception e)
             {
