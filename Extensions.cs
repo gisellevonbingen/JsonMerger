@@ -126,7 +126,18 @@ namespace LangFileDiff
             }
             else
             {
-                return line.Replace(line.ExtractValue(), newValue.ExtractValue());
+                var index = line.IndexOf(':');
+
+                if (index == -1)
+                {
+                    return line;
+                }
+                else
+                {
+                    var newRight = line.Substring(index).Replace(line.ExtractValue(), newValue.ExtractValue());
+                    return line.Substring(0, index) + newRight;
+                }
+
             }
 
         }
