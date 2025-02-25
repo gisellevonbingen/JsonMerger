@@ -134,7 +134,9 @@ namespace LangFileDiff
                 }
                 else
                 {
-                    var newRight = line.Substring(index).Replace(line.ExtractValue(), newValue.ExtractValue());
+                    var prev = line.ExtractValue();
+                    var next = newValue.ExtractValue();
+                    var newRight = string.IsNullOrEmpty(prev) ? next : line.Substring(index).Replace(prev, next);
                     return line.Substring(0, index) + newRight;
                 }
 
